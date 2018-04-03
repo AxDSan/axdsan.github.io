@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" >
     <title>
         
-        Cracking a Rust CrackMe! · The Framework Hopper
+        Reversing a Rust CrackMe! · The Framework Hopper
         
     </title>
     <link rel="icon" href= /assests/favicon.ico>
@@ -63,7 +63,7 @@
                 <a href="/" >The Framework Hopper.</a>
             </div>
             <div class="post-title">
-                <a href="#" class="post-name">Cracking a Rust CrackMe!</a>
+                <a href="#" class="post-name">Reversing a Rust CrackMe!</a>
             </div>
     </div>
     
@@ -84,7 +84,7 @@
         <h1 class="intro-title">
             <!-- 主页  -->
             
-            Cracking a Rust CrackMe!
+            Reversing a Rust CrackMe!
             <!-- 404 -->
             
         </h1>
@@ -99,6 +99,12 @@
         <!-- 文章页meta -->
         
             <!-- 文章页标签  -->
+            
+                <div class= post-intro-tags >
+    
+        <a class="post-tag" href="javascript:void(0);" data-href = reversing>reversing</a>
+    
+</div>
             
             <div class="post-intro-meta">
                 <span class="post-intro-calander iconfont-archer">&#xe676;</span>
@@ -173,7 +179,28 @@
         <div class="container container-unloaded">
             <main class="main post-page">
     <article class="article-entry">
-        <h3 id="So-Hello-Rust-Nice-to-Meet-You"><a href="#So-Hello-Rust-Nice-to-Meet-You" class="headerlink" title="So Hello Rust, Nice to Meet You!"></a>So Hello Rust, Nice to Meet You!</h3>
+        <h1 id="Dear-Reader"><a href="#Dear-Reader" class="headerlink" title="Dear Reader,"></a>Dear Reader,</h1><p>Hello and welcome to this post, I will discuss my adventures on a Rust CrackMe I saw in a Reverse Engineering Discord server, this CrackMe as you may know already is powered by the Rust Lang, This language is AMAZING and it’s really close to C++.</p>
+<h1 id="Hello-Rust-Nice-to-Meet-You"><a href="#Hello-Rust-Nice-to-Meet-You" class="headerlink" title="Hello Rust! Nice to Meet You!"></a>Hello Rust! Nice to Meet You!</h1><p><img src="https://i.imgur.com/uu0OGdf.png" alt=""></p>
+<p>So, I downloaded the CrackMe and quickly went into my good ol’ bud x64DBG, which is the one I commonly use for my RE projects… Started analyzing it and… Wait what? as soon as I hit the <code>OEP</code> I start seeing a bounch of weird things (being new to a Rust binary, that’s quite understandable), eg. instead of having a normal control flow, I started seeing how I had to keep on going further deep in between calls and things like that. So that was quite painful to go through, Also I couldn’t trace step out because it would obivously would skip the calls and then I would be out of luck, and also couldn’t trace call stack because it showed no hints what so ever of what was being called, it would always show calls from kernel and stuff, but not from the internal binary.</p>
+<h1 id="IDA-to-the-rescue"><a href="#IDA-to-the-rescue" class="headerlink" title="IDA to the rescue!"></a>IDA to the rescue!</h1><p>So as I called it a defeat with x64DBG, I called in IDA, and started working on it, IDA has cool graphs and plugins that will help you setup your pace back on tracks and will allow you to have a more broader approach when analyzing something…</p>
+<p>So once I started working on it, I noticed where the binary had some interesting strings showing up, so I went there and lo’ and behold there they were!</p>
+<p><img src="https://i.imgur.com/9yPrps6.png" alt=""></p>
+<p>So I went to where it was being used, and here we are, finally!</p>
+<p><img src="https://i.imgur.com/Sv0wOkt.png" alt=""></p>
+<p>So I quickly assumed this was the main function where everything was going down, so I love the renaming feature of IDA so why not use it? 😜</p>
+<p>So, not only I noticed that Rust does all those weird things with the control flow as I mentioned before, but also the compiler adds a bunch of other junk stuff, however thankfully, now that I got the main function, I can call it a day and skip all the junk stuff, and just focus on this part only.</p>
+<h1 id="CrackMe-What’s-your-sorcery"><a href="#CrackMe-What’s-your-sorcery" class="headerlink" title="CrackMe, What’s your sorcery?"></a>CrackMe, What’s your sorcery?</h1><p>So this CrackMe, (skipping ahead some prior reversing) was relatively simpe as the name suggests, not minding any of the junk stuff compiler adds, I just had to focus on this part:</p>
+<p><img src="https://i.imgur.com/MU0CGfY.png" alt=""></p>
+<p>This is where the meat is, more importantly inside <code>checkPwdHash</code> at <code>0xE11411</code> function that you see there, is where the actual algorithm that checks password is.</p>
+<p>and it’s as simple as, getting all the bytes in a byte arry, and sum them all together, the output will be the checksum for the string, viola!</p>
+<p>so in python it would be someting like this:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">calc_checksum</span><span class="params">(the_bytes)</span>:</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">b'%02X'</span> % (sum(the_bytes))</span><br><span class="line"></span><br><span class="line">bytes = [<span class="number">0x70</span>, <span class="number">0x65</span>, <span class="number">0x70</span>, <span class="number">0x65</span>] <span class="comment"># bytes = 'pepe'</span></span><br><span class="line"></span><br><span class="line">print(calc_checksum(bytes)) <span class="comment"># output: b'1AA'</span></span><br></pre></td></tr></table></figure>
+<p><a href="https://goo.gl/zRP5L9" target="_blank" rel="noopener">Run it here!</a> / Grab a more dedicated source <a href="https://gist.github.com/AxDSan/d741935628756cb1aa955c65f9ba269e" target="_blank" rel="noopener">HERE</a></p>
+<h1 id="Wrap-Up"><a href="#Wrap-Up" class="headerlink" title="Wrap Up!"></a>Wrap Up!</h1><p>This was a really a really cool excercise and it was the very first Rust CrackMe I ever did!</p>
+<p>So, first, I’m sorry if I didn’t provided the actual method to crack this down, but as the title suggested it was just a reversing session, I wasn’t aiming to crack the actual password because the bruteforce would just take a lot of time.</p>
+<p>Second, shout out and thanks to the author (mgostIH#0245) of the CrackMe who obviously the one who provided it first.</p>
+<p>And that’s it, I’m out!</p>
+
     </article>
     <!-- 前后页  -->
     <ul class="post-pager">
@@ -200,7 +227,7 @@
     /*
     var disqus_config = function () {
     this.page.url = "axdsan.github.io";  // Replace PAGE_URL with your page's canonical URL variable
-    this.page.identifier = "Cracking a Rust CrackMe!"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    this.page.identifier = "Reversing a Rust CrackMe!"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
     };
     */
     (function() { // DON'T EDIT BELOW THIS LINE
@@ -260,7 +287,7 @@
         <div class="toc-catalog">
             <span class="iconfont-archer catalog-icon">&#xe613;</span><span>CATALOG</span>
         </div>
-        <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#So-Hello-Rust-Nice-to-Meet-You"><span class="toc-number">1.</span> <span class="toc-text">So Hello Rust, Nice to Meet You!</span></a></li></ol>
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Dear-Reader"><span class="toc-number">1.</span> <span class="toc-text">Dear Reader,</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Hello-Rust-Nice-to-Meet-You"><span class="toc-number">2.</span> <span class="toc-text">Hello Rust! Nice to Meet You!</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#IDA-to-the-rescue"><span class="toc-number">3.</span> <span class="toc-text">IDA to the rescue!</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#CrackMe-What’s-your-sorcery"><span class="toc-number">4.</span> <span class="toc-text">CrackMe, What’s your sorcery?</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Wrap-Up"><span class="toc-number">5.</span> <span class="toc-text">Wrap Up!</span></a></li></ol>
     </div>
     
     <div class="back-top">&#xe639;</div>
@@ -331,7 +358,7 @@
     
     
         <li class="archive-post-item">
-            <span class="archive-post-date">04/03</span><a class="archive-post-title" href= "/2018/04/03/CrackMe/" >Cracking a Rust CrackMe!</a>
+            <span class="archive-post-date">04/03</span><a class="archive-post-title" href= "/2018/04/03/CrackMe/" >Reversing a Rust CrackMe!</a>
         </li>
     
     
@@ -355,18 +382,20 @@
     
     
         <li class="archive-post-item">
-            <span class="archive-post-date">11/18</span><a class="archive-post-title" href= "/2017/11/18/Diaries-of-a-Framework-Hopper/" >Diaries of a Framework Hopper - Part 1</a>
+            <span class="archive-post-date">11/18</span><a class="archive-post-title" href= "/2017/11/18/Wait-I-m-a-Blogger-Now/" >Wait Am I a Blogger Now!?</a>
         </li>
     
     
         <li class="archive-post-item">
-            <span class="archive-post-date">11/18</span><a class="archive-post-title" href= "/2017/11/18/Wait-I-m-a-Blogger-Now/" >Wait Am I a Blogger Now!?</a>
+            <span class="archive-post-date">11/18</span><a class="archive-post-title" href= "/2017/11/18/Diaries-of-a-Framework-Hopper/" >Diaries of a Framework Hopper - Part 1</a>
         </li>
     
     </div>
   </div>
         <div class="sidebar-tags">
     <div class="sidebar-tags-name">
+    
+        <span class="sidebar-tag-name"><a href= "#">reversing</a></span>
     
     </div>
     <div class="tag-load-fail" style="display: none; color: #ccc; font-size: 0.6rem;">
